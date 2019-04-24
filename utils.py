@@ -1,4 +1,4 @@
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import tensorflow as tf
 
 
@@ -14,7 +14,7 @@ def cdist(X, Y):
     return distances
 
 
-def compute_T(K, u, v, n_iter=50, tol=1e-5):
+def compute_T(K, u, v, n_iter, tol):
     """
     Parameters:
     -----------
@@ -32,17 +32,17 @@ def compute_T(K, u, v, n_iter=50, tol=1e-5):
     c_new = tf.negative(tf.ones([int(v.shape[0]), 1], dtype=tf.float64))
 
     def cond(r, c, r_new, c_new):
-        r_ok = tf.reduce_all(tf.abs(r_new - r) < tol)
-        c_ok = tf.reduce_all(tf.abs(c_new - c) < tol)
-        return tf.logical_and(r_ok, c_ok)
+        r_enter = tf.reduce_any(tf.abs(r_new - r) > tol)
+        c_enter = tf.reduce_any(tf.abs(c_new - c) > tol)
+        return tf.logical_or(r_enter, c_enter)
 
     def body(r, c, r_new, c_new):
         r, c = r_new, c_new
         r_new = u / tf.matmul(K, c, False, False)
-        c_new = v / tf.matmul(K, r, True, False)
+        c_new = v / tf.matmul(K, r_new, True, False)
         return [r, c, r_new, c_new]
 
-    tf.while_loop(cond, body, [r, c, r_new, c_new], maximum_iterations=n_iter)
+    _, _, r, c = tf.while_loop(cond, body, [r, c, r_new, c_new], maximum_iterations=n_iter)
 
     T_opt = tf.matmul(tf.diag(tf.reshape(r, (-1,))),
                       tf.matmul(K, tf.diag(tf.reshape(c, (-1,)))))
@@ -50,7 +50,7 @@ def compute_T(K, u, v, n_iter=50, tol=1e-5):
     return T_opt
 
 
-def wasserstein_distance(n1, n2, embeddings, u, v, lambd, p=1, n_iter=50, tol=1e-5):
+def wasserstein_distance(n1, n2, embeddings, u, v, lambd, p, n_iter, tol):
     support_1 = embeddings[n1, :, :]
     support_2 = embeddings[n2, :, :]
     D = cdist(support_1, support_2)
@@ -65,29 +65,29 @@ def wasserstein_distance(n1, n2, embeddings, u, v, lambd, p=1, n_iter=50, tol=1e
     return distance
 
 
-def embedding_distances(pairs, embeddings, u, v, lambd, p=1, n_iter=50, tol=1e-5):
+def embedding_distances(pairs, embeddings, u, v, lambd, p, n_iter, tol):
 
     results = tf.map_fn(lambda x: wasserstein_distance(
-        x[0], x[1], embeddings, u, v, lambd, p, n_iter, tol), pairs, dtype=tf.float64)
+        x[0], x[1], embeddings, u, v, lambd, p, n_iter, tol), (pairs), dtype=tf.float64)
     return results
 
 
-def train(node_pairs, obj_distances, n_epochs=200, patience=10, u_v=None, embed_dim=4, ground_dim=2, lambd=0.5, p=1, mat_bal_iter=50, mat_bal_tol=1e-5):
+def train(node_pairs, obj_distances, n_epochs=500, patience=10, learning_rate=0.1, u_v=None, nodes=128, embed_dim=20, ground_dim=2, lambd=0.1, p=1, mat_bal_iter=20, mat_bal_tol=1e-5):
     if u_v is None:
         u = tf.ones([embed_dim, 1], dtype=tf.float64) / embed_dim
         v = tf.ones([embed_dim, 1], dtype=tf.float64) / embed_dim
     
     n_nodes = int(obj_distances.shape[0])
 
-    Node_Pairs = tf.placeholder(dtype=tf.int32, shape=[None, 2], name='Node_Pairs')
-    Obj_Distances = tf.placeholder(dtype=tf.float64, shape=[None], name='Obj_Distances')
+    Node_Pairs = tf.placeholder(dtype=tf.int32, shape=[n_nodes, 2], name='Node_Pairs')
+    Obj_Distances = tf.placeholder(dtype=tf.float64, shape=[n_nodes], name='Obj_Distances')
 
     Embeddings = tf.Variable(tf.random.uniform(
-        [n_nodes, embed_dim, ground_dim], dtype=tf.float64), name='Embeddings')
+        [nodes, embed_dim, ground_dim], dtype=tf.float64), name='Embeddings')
     Embed_Distances = embedding_distances(Node_Pairs, Embeddings, u, v, lambd, p, mat_bal_iter, mat_bal_tol)
     Loss = tf.reduce_mean(tf.abs(Embed_Distances - Obj_Distances) / Obj_Distances)
     Jac = tf.gradients(ys=Embed_Distances, xs=Embeddings)
-    optimizer = tf.train.AdamOptimizer(learning_rate=0.1).minimize(Loss)
+    optimizer = tf.train.AdamOptimizer(learning_rate).minimize(Loss)
     init_op = tf.global_variables_initializer()
     with tf.Session() as sess:
         sess.run(init_op)
@@ -98,12 +98,12 @@ def train(node_pairs, obj_distances, n_epochs=200, patience=10, u_v=None, embed_
         early_stopping_counter = 0
         for epoch in range(n_epochs):
            # Running the Optimizer
-            _, embeddings, loss, embed_distances, jac = sess.run([optimizer, Embeddings, Embed_Distances, Loss, Jac], feed_dict={Node_Pairs: node_pairs, Obj_Distances: obj_distances})
+            _, embeddings, embed_distances, loss, jac = sess.run([optimizer, Embeddings, Embed_Distances, Loss, Jac], feed_dict={Node_Pairs: node_pairs, Obj_Distances: obj_distances})
             # Storing loss to the history
             loss_history.append(loss)
             # Displaying result on current Epoch
-            if epoch % 10 == 0 and epoch != 0:
-                print("Epoch: {}/{}, loss: {}".format(epoch, n_epochs, loss))
+            # if epoch % 10 == 0 and epoch != 0:
+            print("Epoch: {}/{}, loss: {}".format(epoch, n_epochs, loss))
             # Early stopping check
             if loss < best_loss:
                 best_loss = loss
@@ -116,12 +116,14 @@ def train(node_pairs, obj_distances, n_epochs=200, patience=10, u_v=None, embed_
 
 from graph_generator import GraphGenerator
 
-g = GraphGenerator(graph_type='scale-free')
+g = GraphGenerator(graph_type='scale-free', n_nodes=128, m=3)
 node_pairs = g.get_node_pairs()
+print(node_pairs.shape)
 obj_distances = g.get_obj_distances()
+print(obj_distances.shape)
 
-embeddings, loss_history, embed_distances, jac  = train(node_pairs, obj_distances)
+embeddings, loss_history, embed_distances, jac = train(node_pairs, obj_distances)
 
-plt.figure()
-plt.plot(loss_history)
-plt.show()
+# plt.figure()
+# plt.plot(loss_history)
+# plt.show()

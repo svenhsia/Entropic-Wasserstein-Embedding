@@ -2,11 +2,11 @@ import networkx as nx
 import numpy as np
 
 class GraphGenerator(object):
-    def __init__(self, graph_type='scale-free', n_nodes=128):
+    def __init__(self, graph_type='scale-free', n_nodes=128, m=6, p=0.4):
         if graph_type == 'scale-free':
-            graph = nx.barabasi_albert_graph(n_nodes, 6)
+            graph = nx.barabasi_albert_graph(n_nodes, m)
         elif graph_type == 'small-world':
-            graph = nx.watts_strogatz_graph(n_nodes, 6, 0.4)
+            graph = nx.watts_strogatz_graph(n_nodes, m, p)
         # elif graph_type == 'community-structured':
         #     graph = nx.stochastic_block_model()
         elif graph_type == 'random-trees':
