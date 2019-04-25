@@ -1,6 +1,11 @@
-# import matplotlib.pyplot as plt
+import os
+import logging
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
+
+import numpy as np
 import tensorflow as tf
 import networkx as nx
+# import matplotlib.pyplot as plt
 
 def cdist(X, Y):
     X2 = tf.reduce_sum(tf.square(X), 1)
@@ -94,7 +99,7 @@ def hyperbolic_distances(pairs, embeddings, eps):
     return results
 
 
-def train(node_pairs, obj_distances, embedding_type='Euc', n_epochs=500, patience=10, learning_rate=0.01, u_v=None, nodes=128, embed_dim=20, ground_dim=2, lambd=1.0, p=1, mat_bal_iter=20, mat_bal_tol=1e-5, eps=1e-5):
+def train(node_pairs, obj_distances, embedding_type='Euc', n_epochs=500, learning_rate=0.01, u_v=None, nodes=128, embed_dim=20, ground_dim=2, lambd=1.0, p=1, mat_bal_iter=20, mat_bal_tol=1e-5, eps=1e-5):
     if u_v is None:
         u = tf.ones([embed_dim, 1], dtype=tf.float64) / embed_dim
         v = tf.ones([embed_dim, 1], dtype=tf.float64) / embed_dim
@@ -126,8 +131,8 @@ def train(node_pairs, obj_distances, embedding_type='Euc', n_epochs=500, patienc
         # Lists for storing the changing Cost and Accuracy in every Epoch
         loss_history = []
 
-        best_loss = 1000
-        early_stopping_counter = 0
+        # best_loss = 1000
+        # early_stopping_counter = 0
         for epoch in range(n_epochs):
            # Running the Optimizer
             _, embeddings, embed_distances, loss, jac = sess.run([optimizer, Embeddings, Embed_Distances, Loss, Jac], feed_dict={Node_Pairs: node_pairs, Obj_Distances: obj_distances, Lambd: lambd, Learning_rate: learning_rate})
@@ -135,29 +140,73 @@ def train(node_pairs, obj_distances, embedding_type='Euc', n_epochs=500, patienc
             loss_history.append(loss)
             # Displaying result on current Epoch
             # if epoch % 10 == 0 and epoch != 0:
-            print("Epoch: {}/{}, loss: {}".format(epoch, n_epochs, loss))
+            logging.info("Epoch: {}/{}, loss: {}".format(epoch, n_epochs, loss))
             # Early stopping check
-            if loss < best_loss:
-                best_loss = loss
-                early_stopping_counter = 0
-            else:
-                early_stopping_counter += 1
-            if early_stopping_counter >= patience:
+            if epoch > 20 and np.mean(loss_history[-15:-5]) - loss_history[-1] < 1e-4:
+                logging.info("Early Stopped: 10 consecutive epochs with loss improvement {}".format(loss_history[-11]-loss_history[-1]))
                 break
+            # if loss < best_loss:
+            #     best_loss = loss
+            #     early_stopping_counter = 0
+            # else:
+            #     early_stopping_counter += 1
+            # if early_stopping_counter >= patience:
+            #     break
     return embeddings, loss_history, embed_distances, jac
 
 from graph_generator import GraphGenerator
 
 # g = GraphGenerator(graph_type='scale-free', n_nodes=128, m=3)
-g = nx.read_gpickle("./graphs/scale_free_1.pickle")
-node_pairs = g.get_node_pairs()
-print(node_pairs.shape)
-obj_distances = g.get_obj_distances()
-print(obj_distances.shape)
 
-# learning rate = 0.1 for Euc and Wass, 0.01 for Hyper
-embeddings, loss_history, embed_distances, jac = train(node_pairs, obj_distances, embedding_type='Hyper')
+embed_dims = [2, 5, 10, 20, 30, 40, 50, 60]
+n_epochs = 1000
 
-# plt.figure()
-# plt.plot(loss_history)
-# plt.show()
+for graph_file in os.listdir('./graphs/'):
+    g = nx.read_gpickle("./graphs/{}".format(graph_file))
+    graph_name = graph_file.split('.')[0]
+    logging.info("Load graph {} from local file".format(graph_file))
+    node_pairs = g.get_node_pairs()
+    obj_distances = g.get_obj_distances()
+    logging.info("node pairs shape: {}, obj_distances shape: {}".format(
+        node_pairs.shape, obj_distances.shape))
+    
+    for embed_dim in embed_dims:
+        # Euclidean
+        logging.info("Running Euclidean embedding, embed dim={}".format(embed_dim))
+        embeddings, loss_history, embed_distances, jac = train(
+            node_pairs, obj_distances, embedding_type='Euclidean', embed_dim=embed_dim, 
+            learning_rate=0.1, n_epochs=n_epochs)
+        np.savez('./results/{}_{}_{}'.format(graph_name, 'Euclidean', embed_dim), 
+            embeddings=embeddings, loss=loss_history, embed_distances=embed_distances)
+        
+        # Hyperbolic
+        logging.info("Running Hyperbolic embedding, embed dim={}".format(embed_dim))
+        embeddings, loss_history, embed_distances, jac = train(
+            node_pairs, obj_distances, embedding_type='Hyper', embed_dim=embed_dim, 
+            learning_rate=0.01, n_epochs=n_epochs)
+        np.savez('./results/{}_{}_{}'.format(graph_name, 'Hyperbolic', embed_dim), 
+            embeddings=embeddings, loss=loss_history, embed_distances=embed_distances)
+        
+        # Wass R2
+        logging.info("Running Wasserstein R2 embedding, embed dim={}".format(embed_dim))
+        embeddings, loss_history, embed_distances, jac = train(
+            node_pairs, obj_distances, embedding_type='Wass', embed_dim=embed_dim, 
+            learning_rate=0.01, n_epochs=n_epochs, ground_dim=2)
+        np.savez('./results/{}_{}_{}'.format(graph_name, 'WassR2', embed_dim), 
+            embeddings=embeddings, loss=loss_history, embed_distances=embed_distances)
+        
+        # Wass R3
+        logging.info("Running Wasserstein R3 embedding, embed dim={}".format(embed_dim))
+        embeddings, loss_history, embed_distances, jac = train(
+            node_pairs, obj_distances, embedding_type='Wass', embed_dim=embed_dim, 
+            learning_rate=0.01, n_epochs=n_epochs, ground_dim=3)
+        np.savez('./results/{}_{}_{}'.format(graph_name, 'WassR3', embed_dim), 
+            embeddings=embeddings, loss=loss_history, embed_distances=embed_distances)
+        
+        # Wass R4
+        logging.info("Running Wasserstein R4 embedding, embed dim={}".format(embed_dim))
+        embeddings, loss_history, embed_distances, jac = train(
+            node_pairs, obj_distances, embedding_type='Wass', embed_dim=embed_dim, 
+            learning_rate=0.01, n_epochs=n_epochs, ground_dim=4)
+        np.savez('./results/{}_{}_{}'.format(graph_name, 'WassR4', embed_dim), 
+            embeddings=embeddings, loss=loss_history, embed_distances=embed_distances)
