@@ -1,4 +1,5 @@
 import os
+import sys
 import logging
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 
@@ -158,10 +159,14 @@ from graph_generator import GraphGenerator
 
 # g = GraphGenerator(graph_type='scale-free', n_nodes=128, m=3)
 
+graph_id = sys.argv[1]
+
 embed_dims = [2, 5, 10, 20, 30, 40, 50, 60]
 n_epochs = 1000
 
 for graph_file in os.listdir('./graphs/'):
+    if graph_file.split('.')[0].split('_')[-1] != graph_id:
+        continue
     g = nx.read_gpickle("./graphs/{}".format(graph_file))
     graph_name = graph_file.split('.')[0]
     logging.info("Load graph {} from local file".format(graph_file))
