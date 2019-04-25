@@ -26,23 +26,21 @@ def compute_T(K, u, v, n_iter, tol):
         n_iter: number of iterations for matrix balancing
         tol: tolerance for stopping matrix balancing iterations
     """
-    r = tf.random.uniform([int(u.shape[0]), 1], dtype=tf.float64)
-    c = tf.random.uniform([int(v.shape[0]), 1], dtype=tf.float64)
+    K_tilde = 1. / u * K
+    r = tf.random_normal([int(u.shape[0]), 1], dtype=tf.float64)
     r_new = tf.negative(tf.ones([int(u.shape[0]), 1], dtype=tf.float64))
-    c_new = tf.negative(tf.ones([int(v.shape[0]), 1], dtype=tf.float64))
 
-    def cond(r, c, r_new, c_new):
+    def cond(r, r_new):
         r_enter = tf.reduce_any(tf.abs(r_new - r) > tol)
-        c_enter = tf.reduce_any(tf.abs(c_new - c) > tol)
-        return tf.logical_or(r_enter, c_enter)
+        return r_enter
 
-    def body(r, c, r_new, c_new):
-        r, c = r_new, c_new
-        r_new = u / tf.matmul(K, c, False, False)
-        c_new = v / tf.matmul(K, r_new, True, False)
-        return [r, c, r_new, c_new]
+    def body(r, r_new):
+        r = r_new
+        r_new = 1. / tf.matmul(K_tilde, v / tf.matmul(K, r, True, False))
+        return [r, r_new]
 
-    _, _, r, c = tf.while_loop(cond, body, [r, c, r_new, c_new], maximum_iterations=n_iter)
+    _, r = tf.while_loop(cond, body, [r, r_new], maximum_iterations=n_iter)
+    c = v / tf.matmul(K, r, True, False)
 
     T_opt = tf.matmul(tf.diag(tf.reshape(r, (-1,))),
                       tf.matmul(K, tf.diag(tf.reshape(c, (-1,)))))
@@ -72,7 +70,7 @@ def embedding_distances(pairs, embeddings, u, v, lambd, p, n_iter, tol):
     return results
 
 
-def train(node_pairs, obj_distances, n_epochs=500, patience=10, learning_rate=0.1, u_v=None, nodes=128, embed_dim=20, ground_dim=2, lambd=0.1, p=1, mat_bal_iter=20, mat_bal_tol=1e-5):
+def train(node_pairs, obj_distances, n_epochs=500, patience=10, learning_rate=0.5, u_v=None, nodes=128, embed_dim=20, ground_dim=2, lambd=1.0, p=1, mat_bal_iter=20, mat_bal_tol=1e-5):
     if u_v is None:
         u = tf.ones([embed_dim, 1], dtype=tf.float64) / embed_dim
         v = tf.ones([embed_dim, 1], dtype=tf.float64) / embed_dim
@@ -81,13 +79,15 @@ def train(node_pairs, obj_distances, n_epochs=500, patience=10, learning_rate=0.
 
     Node_Pairs = tf.placeholder(dtype=tf.int32, shape=[n_nodes, 2], name='Node_Pairs')
     Obj_Distances = tf.placeholder(dtype=tf.float64, shape=[n_nodes], name='Obj_Distances')
+    Lambd = tf.placeholder(dtype=tf.float64, shape=(), name='Lambd')
+    Learning_rate = tf.placeholder(dtype=tf.float64, shape=(), name='Learning_rate')
 
-    Embeddings = tf.Variable(tf.random.uniform(
+    Embeddings = tf.Variable(tf.random.normal(
         [nodes, embed_dim, ground_dim], dtype=tf.float64), name='Embeddings')
-    Embed_Distances = embedding_distances(Node_Pairs, Embeddings, u, v, lambd, p, mat_bal_iter, mat_bal_tol)
+    Embed_Distances = embedding_distances(Node_Pairs, Embeddings, u, v, Lambd, p, mat_bal_iter, mat_bal_tol)
     Loss = tf.reduce_mean(tf.abs(Embed_Distances - Obj_Distances) / Obj_Distances)
     Jac = tf.gradients(ys=Embed_Distances, xs=Embeddings)
-    optimizer = tf.train.AdamOptimizer(learning_rate).minimize(Loss)
+    optimizer = tf.train.AdamOptimizer(Learning_rate).minimize(Loss)
     init_op = tf.global_variables_initializer()
     with tf.Session() as sess:
         sess.run(init_op)
@@ -98,7 +98,7 @@ def train(node_pairs, obj_distances, n_epochs=500, patience=10, learning_rate=0.
         early_stopping_counter = 0
         for epoch in range(n_epochs):
            # Running the Optimizer
-            _, embeddings, embed_distances, loss, jac = sess.run([optimizer, Embeddings, Embed_Distances, Loss, Jac], feed_dict={Node_Pairs: node_pairs, Obj_Distances: obj_distances})
+            _, embeddings, embed_distances, loss, jac = sess.run([optimizer, Embeddings, Embed_Distances, Loss, Jac], feed_dict={Node_Pairs: node_pairs, Obj_Distances: obj_distances, Lambd: lambd, Learning_rate: learning_rate})
             # Storing loss to the history
             loss_history.append(loss)
             # Displaying result on current Epoch
