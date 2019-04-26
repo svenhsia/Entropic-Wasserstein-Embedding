@@ -162,13 +162,15 @@ from graph_generator import GraphGenerator
 
 graph_id = sys.argv[1]
 
-embed_dims = [2, 5, 10, 20, 30, 40, 50, 60]
+embed_dims = [2, 5, 10, 20, 30, 40]
 n_epochs = 1000
+num_nodes = 64
 
 for graph_file in os.listdir('./graphs/'):
     if graph_file.split('.')[0].split('_')[-1] != graph_id:
         continue
-    g = nx.read_gpickle("./graphs/{}".format(graph_file))
+    # g = nx.read_gpickle("./graphs/{}".format(graph_file))
+    g = nx.read_gpickle("./graphs/scale_free_{}_{}.pickle".format(num_nodes, graph_id))
     graph_name = graph_file.split('.')[0]
     logging.info("Load graph {} from local file".format(graph_file))
     node_pairs = g.get_node_pairs()
@@ -181,7 +183,7 @@ for graph_file in os.listdir('./graphs/'):
         logging.info("Running Euclidean embedding, embed dim={}".format(embed_dim))
         embeddings, loss_history, embed_distances, jac = train(
             node_pairs, obj_distances, embedding_type='Euc', embed_dim=embed_dim, 
-            learning_rate=0.1, n_epochs=n_epochs)
+            learning_rate=0.1, n_epochs=n_epochs, nodes=num_nodes)
         np.savez('./results/{}_{}_{}'.format(graph_name, 'Euclidean', embed_dim), 
             embeddings=embeddings, loss=loss_history, embed_distances=embed_distances)
         
@@ -189,7 +191,7 @@ for graph_file in os.listdir('./graphs/'):
         logging.info("Running Hyperbolic embedding, embed dim={}".format(embed_dim))
         embeddings, loss_history, embed_distances, jac = train(
             node_pairs, obj_distances, embedding_type='Hyper', embed_dim=embed_dim, 
-            learning_rate=0.05, n_epochs=n_epochs)
+            learning_rate=0.05, n_epochs=n_epochs, nodes=num_nodes)
         np.savez('./results/{}_{}_{}'.format(graph_name, 'Hyperbolic', embed_dim), 
             embeddings=embeddings, loss=loss_history, embed_distances=embed_distances)
         
@@ -197,7 +199,7 @@ for graph_file in os.listdir('./graphs/'):
         logging.info("Running Wasserstein R2 embedding, embed dim={}".format(embed_dim))
         embeddings, loss_history, embed_distances, jac = train(
             node_pairs, obj_distances, embedding_type='Wass', embed_dim=embed_dim, 
-            learning_rate=0.1, n_epochs=n_epochs, ground_dim=2)
+            learning_rate=0.1, n_epochs=n_epochs, ground_dim=2, nodes=num_nodes)
         np.savez('./results/{}_{}_{}'.format(graph_name, 'WassR2', embed_dim), 
             embeddings=embeddings, loss=loss_history, embed_distances=embed_distances)
         
@@ -205,7 +207,7 @@ for graph_file in os.listdir('./graphs/'):
         logging.info("Running Wasserstein R3 embedding, embed dim={}".format(embed_dim))
         embeddings, loss_history, embed_distances, jac = train(
             node_pairs, obj_distances, embedding_type='Wass', embed_dim=embed_dim, 
-            learning_rate=0.1, n_epochs=n_epochs, ground_dim=3)
+            learning_rate=0.1, n_epochs=n_epochs, ground_dim=3, nodes=num_nodes)
         np.savez('./results/{}_{}_{}'.format(graph_name, 'WassR3', embed_dim), 
             embeddings=embeddings, loss=loss_history, embed_distances=embed_distances)
         
@@ -213,6 +215,6 @@ for graph_file in os.listdir('./graphs/'):
         logging.info("Running Wasserstein R4 embedding, embed dim={}".format(embed_dim))
         embeddings, loss_history, embed_distances, jac = train(
             node_pairs, obj_distances, embedding_type='Wass', embed_dim=embed_dim, 
-            learning_rate=0.1, n_epochs=n_epochs, ground_dim=4)
+            learning_rate=0.1, n_epochs=n_epochs, ground_dim=4, nodes=num_nodes)
         np.savez('./results/{}_{}_{}'.format(graph_name, 'WassR4', embed_dim), 
             embeddings=embeddings, loss=loss_history, embed_distances=embed_distances)
