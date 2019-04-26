@@ -43,12 +43,13 @@ class GraphGenerator(object):
         return self.obj_distances
 
 # # generate scale free graphs to ensure that all types of embeddings use the same graphs
+# num_nodes = 64
 # for i in range(20):
-#     G = GraphGenerator(graph_type='scale-free', n_nodes=128, m=3)
-#     nx.write_gpickle(G, "./graphs/scale_free_{}.pickle".format(i+1))
+#     G = GraphGenerator(graph_type='scale-free', n_nodes=num_nodes, m=2)
+#     nx.write_gpickle(G, "./graphs/scale_free_{}_{}.pickle".format(num_nodes, i+1))
 #     print("Finishing writing scale free graph {}".format(i+1))
 
 # # test read pickle
-# G = nx.read_gpickle("./graphs/scale_free_1.pickle")
+# G = nx.read_gpickle("./graphs/scale_free_64_1.pickle")
 # print(G.get_node_pairs()[0])
 # print(G.get_obj_distances()[0])
