@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 import networkx as nx
 
-# from graph_generator import GraphGenerator
+from graph_generator import GraphGenerator
 from utils import *
 
 # # # test kl embeddings
