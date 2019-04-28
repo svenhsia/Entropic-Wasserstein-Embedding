@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 ./*.npz
 restored/
+graphs/web_google/*
 
 # C extensions
 *.so
