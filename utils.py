@@ -159,6 +159,8 @@ def train(node_pairs, obj_distances, embedding_type='Euc', n_epochs=500, learnin
         for epoch in range(n_epochs):
            # Running the Optimizer
             _, embeddings, embed_distances, loss, jac = sess.run([optimizer, Embeddings, Embed_Distances, Loss, Jac], feed_dict={Node_Pairs: node_pairs, Obj_Distances: obj_distances, Lambd: lambd, Learning_rate: learning_rate})
+            if np.isnan(loss):
+                raise RuntimeError("Loss is NaN.")
             # Storing loss to the history
             loss_history.append(loss)
             # Storing consumed time
@@ -202,7 +204,7 @@ num_nodes = 64
 # for graph_file in os.listdir('./graphs/'):
 #     if graph_file.split('.')[0].split('_')[-1] != graph_id:
 #         continue
-for graph_id in range(20):
+for graph_id in [1, 2, 3, 4, 5, 6, 7, 8, 9, 11]:
     # g = nx.read_gpickle("./graphs/{}".format(graph_file))
     g = nx.read_gpickle("./graphs/scale_free_{}_{}.pickle".format(num_nodes, graph_id))
     # graph_name = graph_file.split('.')[0]
@@ -216,40 +218,46 @@ for graph_id in range(20):
     
     for embed_dim in embed_dims:
         # Euclidean
-        logging.info("Running Euclidean embedding, embed dim={}".format(embed_dim))
-        embeddings, loss_history, time_history, embed_distances, jac = train(
-            node_pairs, obj_distances, embedding_type='Euc', embed_dim=embed_dim, 
-            learning_rate=0.1, n_epochs=n_epochs, nodes=num_nodes)
-        np.savez('./results/{}_{}_{}'.format(graph_name, 'Euclidean', embed_dim), 
-            embeddings=embeddings, loss=loss_history, time=time_history, 
-            embed_distances=embed_distances)
+        # logging.info("Running Euclidean embedding, embed dim={}".format(embed_dim))
+        # embeddings, loss_history, time_history, embed_distances, jac = train(
+        #     node_pairs, obj_distances, embedding_type='Euc', embed_dim=embed_dim, 
+        #     learning_rate=0.1, n_epochs=n_epochs, nodes=num_nodes)
+        # np.savez('./results/{}_{}_{}'.format(graph_name, 'Euclidean', embed_dim), 
+        #     embeddings=embeddings, loss=loss_history, time=time_history, 
+        #     embed_distances=embed_distances)
         
         # Hyperbolic
         logging.info("Running Hyperbolic embedding, embed dim={}".format(embed_dim))
-        embeddings, loss_history, time_history, embed_distances, jac = train(
-            node_pairs, obj_distances, embedding_type='Hyper', embed_dim=embed_dim, 
-            learning_rate=0.05, n_epochs=n_epochs, nodes=num_nodes)
+        while True:
+            try:
+                embeddings, loss_history, time_history, embed_distances, jac = train(
+                    node_pairs, obj_distances, embedding_type='Hyper', embed_dim=embed_dim, 
+                    learning_rate=0.01, n_epochs=n_epochs, nodes=num_nodes)
+                break
+            except RuntimeError:
+                logging.warning("Got Loss NaN")
+                continue
         np.savez('./results/{}_{}_{}'.format(graph_name, 'Hyperbolic', embed_dim), 
             embeddings=embeddings, loss=loss_history, time=time_history, 
             embed_distances=embed_distances)
         
         # Wass R2
-        logging.info("Running Wasserstein R2 embedding, embed dim={}".format(embed_dim))
-        embeddings, loss_history, time_history, embed_distances, jac = train(
-            node_pairs, obj_distances, embedding_type='Wass', embed_dim=embed_dim, 
-            learning_rate=0.1, n_epochs=n_epochs, ground_dim=2, nodes=num_nodes)
-        np.savez('./results/{}_{}_{}'.format(graph_name, 'WassR2', embed_dim), 
-            embeddings=embeddings, loss=loss_history, time=time_history, 
-            embed_distances=embed_distances)
+        # logging.info("Running Wasserstein R2 embedding, embed dim={}".format(embed_dim))
+        # embeddings, loss_history, time_history, embed_distances, jac = train(
+        #     node_pairs, obj_distances, embedding_type='Wass', embed_dim=embed_dim, 
+        #     learning_rate=0.1, n_epochs=n_epochs, ground_dim=2, nodes=num_nodes)
+        # np.savez('./results/{}_{}_{}'.format(graph_name, 'WassR2', embed_dim), 
+        #     embeddings=embeddings, loss=loss_history, time=time_history, 
+        #     embed_distances=embed_distances)
         
         # Wass R3
-        logging.info("Running Wasserstein R3 embedding, embed dim={}".format(embed_dim))
-        embeddings, loss_history, time_history, embed_distances, jac = train(
-            node_pairs, obj_distances, embedding_type='Wass', embed_dim=embed_dim, 
-            learning_rate=0.1, n_epochs=n_epochs, ground_dim=3, nodes=num_nodes)
-        np.savez('./results/{}_{}_{}'.format(graph_name, 'WassR3', embed_dim), 
-            embeddings=embeddings, loss=loss_history, time=time_history, 
-            embed_distances=embed_distances)
+        # logging.info("Running Wasserstein R3 embedding, embed dim={}".format(embed_dim))
+        # embeddings, loss_history, time_history, embed_distances, jac = train(
+        #     node_pairs, obj_distances, embedding_type='Wass', embed_dim=embed_dim, 
+        #     learning_rate=0.1, n_epochs=n_epochs, ground_dim=3, nodes=num_nodes)
+        # np.savez('./results/{}_{}_{}'.format(graph_name, 'WassR3', embed_dim), 
+        #     embeddings=embeddings, loss=loss_history, time=time_history, 
+        #     embed_distances=embed_distances)
         
         # # Wass R4
         # logging.info("Running Wasserstein R4 embedding, embed dim={}".format(embed_dim))
@@ -261,10 +269,10 @@ for graph_id in range(20):
         #     embed_distances=embed_distances)
 
         # KL
-        logging.info("Running KL embedding, embed dim={}".format(embed_dim))
-        embeddings, loss_history, time_history, embed_distances, jac = train(
-            node_pairs, obj_distances, embedding_type='KL', embed_dim=embed_dim, 
-            learning_rate=0.01, n_epochs=n_epochs, nodes=num_nodes)
-        np.savez('./results/{}_{}_{}'.format(graph_name, 'KL', embed_dim), 
-            embeddings=embeddings, loss=loss_history, time=time_history, 
-            embed_distances=embed_distances)
+        # logging.info("Running KL embedding, embed dim={}".format(embed_dim))
+        # embeddings, loss_history, time_history, embed_distances, jac = train(
+        #     node_pairs, obj_distances, embedding_type='KL', embed_dim=embed_dim, 
+        #     learning_rate=0.01, n_epochs=n_epochs, nodes=num_nodes)
+        # np.savez('./results/{}_{}_{}'.format(graph_name, 'KL', embed_dim), 
+        #     embeddings=embeddings, loss=loss_history, time=time_history, 
+        #     embed_distances=embed_distances)
