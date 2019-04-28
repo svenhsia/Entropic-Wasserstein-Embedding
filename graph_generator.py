@@ -11,6 +11,9 @@ class GraphGenerator(object):
         #     graph = nx.stochastic_block_model()
         elif graph_type == 'random-trees':
             graph = GraphGenerator.random_trees(n_nodes)
+        elif graph_type == 'google-web':
+            graph = GraphGenerator.web_google(n_nodes)
+
         self.graph = nx.convert_node_labels_to_integers(graph)
     
     @staticmethod
@@ -30,6 +33,25 @@ class GraphGenerator(object):
                     break
         assert len(g.nodes) == n_nodes
         return g
+    
+    @staticmethod
+    def web_google(n_nodes):
+        g = nx.Graph()
+        with open('./graphs/web_google/web-Google.txt', 'r') as fin:
+            for line in fin:
+                if not line.startswith('#'):
+                    node1, node2 = line.strip().split()
+                    g.add_edge(int(node1), int(node2))
+        start_vertex = np.random.choice(g.nodes)
+        kept_nodes = [start_vertex]
+        to_visit = [start_vertex]
+        while len(kept_nodes) < n_nodes:
+            visit_node = to_visit.pop(0)
+            to_add = [n for n in g[visit_node] if n not in kept_nodes]
+            kept_nodes += to_add
+            to_visit += to_add
+        kept_nodes = kept_nodes[:n_nodes]
+        return g.subgraph(kept_nodes)
 
     def get_node_pairs(self):
         nodes = self.graph.nodes

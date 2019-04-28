@@ -18,10 +18,10 @@ def DTWdistance(s, t):
             cost = np.abs(s[i-1] - t[j-1])
             DTW[i, j] = cost + min([DTW[i-1, j], DTW[i, j-1], DTW[i-1, j-1]])
     
-    # print(DTW[n, m])
+    print(DTW)
     return DTW[n, m]
 
-# test
+# # test
 _, series = load_time_series('./data/Sales_Transactions_Dataset_Weekly.csv')
 print(len(series.columns.values))
 
