@@ -122,9 +122,28 @@ logging.info("node pairs shape: {}, obj_distances shape: {}".format(
     node_pairs.shape, obj_distances.shape))
 
 for embed_dim in embed_dims:
+
+    # KL
+    logging.info("Running KL embedding, embed dim={}".format(embed_dim))
+    try_count = 0
+    while try_count < 5:
+        try:
+            embeddings, loss_history, time_history, embed_distances, jac = train(
+                node_pairs, obj_distances, embedding_type='KL', embed_dim=embed_dim, 
+                learning_rate=0.01, n_epochs=n_epochs, nodes=num_nodes)
+        except RuntimeError:
+            logging.warning("Got loss NaN")
+            try_count += 1
+    else:
+        logging.warning("Fail.") 
+    np.savez('./results/{}_{}_{}'.format(file_name, 'KL', embed_dim), 
+        embeddings=embeddings, loss=loss_history, time=time_history, 
+        embed_distances=embed_distances)
+
     # Euclidean
     logging.info("Running Euclidean embedding, embed dim={}".format(embed_dim))
-    while True:
+    try_count = 0
+    while try_count < 5:
         try:
             embeddings, loss_history, time_history, embed_distances, jac = train(
                 node_pairs, obj_distances, embedding_type='Euc', embed_dim=embed_dim, 
@@ -132,13 +151,17 @@ for embed_dim in embed_dims:
             break
         except RuntimeError:
             logging.warning("Got loss NaN")
+            try_count += 1
+    else:
+        logging.warning("Fail.")
     np.savez('./results/{}_{}_{}'.format(file_name, 'Euclidean', embed_dim), 
         embeddings=embeddings, loss=loss_history, time=time_history, 
         embed_distances=embed_distances)
     
     # Hyperbolic
     logging.info("Running Hyperbolic embedding, embed dim={}".format(embed_dim))
-    while True:
+    try_count = 0
+    while try_count < 5:
         try:
             embeddings, loss_history, time_history, embed_distances, jac = train(
                 node_pairs, obj_distances, embedding_type='Hyper', embed_dim=embed_dim, 
@@ -146,19 +169,26 @@ for embed_dim in embed_dims:
             break
         except RuntimeError:
             logging.warning("Got loss NaN")
+            try_count += 1
+    else:
+        logging.warning("Fail.")
     np.savez('./results/{}_{}_{}'.format(file_name, 'Hyperbolic', embed_dim), 
         embeddings=embeddings, loss=loss_history, time=time_history, 
         embed_distances=embed_distances)
     
     # Wass R2
     logging.info("Running Wasserstein R2 embedding, embed dim={}".format(embed_dim))
-    while True:
+    try_count = 0
+    while try_count < 5:
         try:
             embeddings, loss_history, time_history, embed_distances, jac = train(
                 node_pairs, obj_distances, embedding_type='Wass', embed_dim=embed_dim, 
                 learning_rate=0.1, n_epochs=n_epochs, ground_dim=2, nodes=num_nodes)
         except RuntimeError:
             logging.warning("Got loss NaN")
+            try_count += 1
+    else:
+        logging.warning("Fail.")
     np.savez('./results/{}_{}_{}'.format(file_name, 'WassR2', embed_dim), 
         embeddings=embeddings, loss=loss_history, time=time_history, 
         embed_distances=embed_distances)
@@ -181,16 +211,5 @@ for embed_dim in embed_dims:
     #     embeddings=embeddings, loss=loss_history, time=time_history, 
     #     embed_distances=embed_distances)
 
-    # KL
-    logging.info("Running KL embedding, embed dim={}".format(embed_dim))
-    while True:
-        try:
-            embeddings, loss_history, time_history, embed_distances, jac = train(
-                node_pairs, obj_distances, embedding_type='KL', embed_dim=embed_dim, 
-                learning_rate=0.01, n_epochs=n_epochs, nodes=num_nodes)
-        except RuntimeError:
-            logging.warning("Got loss NaN")    
-    np.savez('./results/{}_{}_{}'.format(file_name, 'KL', embed_dim), 
-        embeddings=embeddings, loss=loss_history, time=time_history, 
-        embed_distances=embed_distances)
+
 
