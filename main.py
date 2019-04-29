@@ -184,6 +184,7 @@ for embed_dim in embed_dims:
             embeddings, loss_history, time_history, embed_distances, jac = train(
                 node_pairs, obj_distances, embedding_type='Wass', embed_dim=embed_dim, 
                 learning_rate=0.1, n_epochs=n_epochs, ground_dim=2, nodes=num_nodes)
+            break
         except RuntimeError:
             logging.warning("Got loss NaN")
             try_count += 1
