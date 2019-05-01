@@ -149,6 +149,7 @@ for embed_dim in embed_dims:
         logging.warning("Fail.")
     if normalize_distance:
         embed_distances = (embed_distances - distance_adjustment) * (obj_max - obj_min) + obj_min
+    logging.info("Writing {}_{}_{} to local file".format(file_name, 'KL', embed_dim))
     np.savez('./results/{}_{}_{}'.format(file_name, 'KL', embed_dim), 
         embeddings=embeddings, loss=loss_history, time=time_history, 
         embed_distances=embed_distances)
@@ -169,6 +170,7 @@ for embed_dim in embed_dims:
         logging.warning("Fail.")
     if normalize_distance:
         embed_distances = (embed_distances - distance_adjustment) * (obj_max - obj_min) + obj_min
+    logging.info("Writing {}_{}_{} to local file".format(file_name, 'Euclidean', embed_dim))
     np.savez('./results/{}_{}_{}'.format(file_name, 'Euclidean', embed_dim), 
         embeddings=embeddings, loss=loss_history, time=time_history, 
         embed_distances=embed_distances)
@@ -189,6 +191,7 @@ for embed_dim in embed_dims:
         logging.warning("Fail.")
     if normalize_distance:
         embed_distances = (embed_distances - distance_adjustment) * (obj_max - obj_min) + obj_min
+    logging.info("Writing {}_{}_{} to local file".format(file_name, 'Hyperbolic', embed_dim))
     np.savez('./results/{}_{}_{}'.format(file_name, 'Hyperbolic', embed_dim), 
         embeddings=embeddings, loss=loss_history, time=time_history, 
         embed_distances=embed_distances)
@@ -209,6 +212,7 @@ for embed_dim in embed_dims:
         logging.warning("Fail.")
     if normalize_distance:
         embed_distances = (embed_distances - distance_adjustment) * (obj_max - obj_min) + obj_min
+    logging.info("Writing {}_{}_{} to local file".format(file_name, 'WassR2', embed_dim))
     np.savez('./results/{}_{}_{}'.format(file_name, 'WassR2', embed_dim), 
         embeddings=embeddings, loss=loss_history, time=time_history, 
         embed_distances=embed_distances)
