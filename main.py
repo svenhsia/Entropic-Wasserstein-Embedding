@@ -116,26 +116,39 @@ num_nodes = org_distances.shape[0]
 distance_adjustment = 1e-5
 
 node_pairs = np.array([[i, j] for i in range(num_nodes) for j in range(i+1, num_nodes)])
-obj_distances = np.array([org_distances[i, j] for i in range(num_nodes) for j in range(i+1, num_nodes)]) + distance_adjustment
+obj_distances_origin = np.array([org_distances[i, j] for i in range(num_nodes) for j in range(i+1, num_nodes)])
 
 logging.info("node pairs shape: {}, obj_distances shape: {}".format(
-    node_pairs.shape, obj_distances.shape))
+    node_pairs.shape, obj_distances_origin.shape))
+
+max_try = 1
+normalize_distance = True
+
+if normalize_distance:
+    obj_min = obj_distances_origin.min()
+    obj_max = obj_distances_origin.max()
+    obj_distances = (obj_distances_origin - obj_min) / (obj_max - obj_min) + distance_adjustment
+else:
+    obj_distances = obj_distances_origin + distance_adjustment
 
 for embed_dim in embed_dims:
 
     # KL
     logging.info("Running KL embedding, embed dim={}".format(embed_dim))
     try_count = 0
-    while try_count < 5:
+    while try_count < max_try:
         try:
             embeddings, loss_history, time_history, embed_distances, jac = train(
                 node_pairs, obj_distances, embedding_type='KL', embed_dim=embed_dim, 
                 learning_rate=0.01, n_epochs=n_epochs, nodes=num_nodes)
+            break
         except RuntimeError:
             logging.warning("Got loss NaN")
             try_count += 1
     else:
-        logging.warning("Fail.") 
+        logging.warning("Fail.")
+    if normalize_distance:
+        embed_distances = (embed_distances - distance_adjustment) * (obj_max - obj_min) + obj_min
     np.savez('./results/{}_{}_{}'.format(file_name, 'KL', embed_dim), 
         embeddings=embeddings, loss=loss_history, time=time_history, 
         embed_distances=embed_distances)
@@ -143,7 +156,7 @@ for embed_dim in embed_dims:
     # Euclidean
     logging.info("Running Euclidean embedding, embed dim={}".format(embed_dim))
     try_count = 0
-    while try_count < 5:
+    while try_count < max_try:
         try:
             embeddings, loss_history, time_history, embed_distances, jac = train(
                 node_pairs, obj_distances, embedding_type='Euc', embed_dim=embed_dim, 
@@ -154,6 +167,8 @@ for embed_dim in embed_dims:
             try_count += 1
     else:
         logging.warning("Fail.")
+    if normalize_distance:
+        embed_distances = (embed_distances - distance_adjustment) * (obj_max - obj_min) + obj_min
     np.savez('./results/{}_{}_{}'.format(file_name, 'Euclidean', embed_dim), 
         embeddings=embeddings, loss=loss_history, time=time_history, 
         embed_distances=embed_distances)
@@ -161,17 +176,19 @@ for embed_dim in embed_dims:
     # Hyperbolic
     logging.info("Running Hyperbolic embedding, embed dim={}".format(embed_dim))
     try_count = 0
-    while try_count < 5:
+    while try_count < max_try:
         try:
             embeddings, loss_history, time_history, embed_distances, jac = train(
                 node_pairs, obj_distances, embedding_type='Hyper', embed_dim=embed_dim, 
-                learning_rate=0.01, n_epochs=n_epochs, nodes=num_nodes)
+                learning_rate=0.0005, n_epochs=n_epochs, nodes=num_nodes)
             break
         except RuntimeError:
             logging.warning("Got loss NaN")
             try_count += 1
     else:
         logging.warning("Fail.")
+    if normalize_distance:
+        embed_distances = (embed_distances - distance_adjustment) * (obj_max - obj_min) + obj_min
     np.savez('./results/{}_{}_{}'.format(file_name, 'Hyperbolic', embed_dim), 
         embeddings=embeddings, loss=loss_history, time=time_history, 
         embed_distances=embed_distances)
@@ -179,7 +196,7 @@ for embed_dim in embed_dims:
     # Wass R2
     logging.info("Running Wasserstein R2 embedding, embed dim={}".format(embed_dim))
     try_count = 0
-    while try_count < 5:
+    while try_count < max_try:
         try:
             embeddings, loss_history, time_history, embed_distances, jac = train(
                 node_pairs, obj_distances, embedding_type='Wass', embed_dim=embed_dim, 
@@ -190,6 +207,8 @@ for embed_dim in embed_dims:
             try_count += 1
     else:
         logging.warning("Fail.")
+    if normalize_distance:
+        embed_distances = (embed_distances - distance_adjustment) * (obj_max - obj_min) + obj_min
     np.savez('./results/{}_{}_{}'.format(file_name, 'WassR2', embed_dim), 
         embeddings=embeddings, loss=loss_history, time=time_history, 
         embed_distances=embed_distances)

@@ -143,8 +143,8 @@ def train(node_pairs, obj_distances, embedding_type='Euc', n_epochs=500, learnin
         Embeddings = tf.Variable(tf.random.uniform([nodes, embed_dim], dtype=tf.float64), name='Embeddings')
         Embed_Distances = euclidean_distances(Node_Pairs, Embeddings)
 
-    # Loss = tf.reduce_mean(tf.abs(Embed_Distances - Obj_Distances) / Obj_Distances)
-    Loss = tf.reduce_mean(tf.square(Embed_Distances - Obj_Distances))
+    Loss = tf.reduce_mean(tf.abs(Embed_Distances - Obj_Distances) / Obj_Distances)
+    # Loss = tf.reduce_mean(tf.square(Embed_Distances - Obj_Distances))
     Jac = tf.gradients(ys=Embed_Distances, xs=Embeddings)
     optimizer = tf.train.AdamOptimizer(Learning_rate).minimize(Loss)
     init_op = tf.global_variables_initializer()
