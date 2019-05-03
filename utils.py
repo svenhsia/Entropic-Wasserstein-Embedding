@@ -117,15 +117,17 @@ def kl_distances(pairs, embeddings, eps):
     return results
 
 
-def train(node_pairs, obj_distances, embedding_type='Euc', n_epochs=500, learning_rate=0.01, u_v=None, nodes=128, embed_dim=20, ground_dim=2, lambd=1.0, p=1, mat_bal_iter=20, mat_bal_tol=1e-5, eps=1e-5):
+def train(node_pairs, obj_distances, embedding_type='Euc', n_epochs=500, batch_size=32, learning_rate=0.01, u_v=None, nodes=128, embed_dim=20, ground_dim=2, lambd=1.0, p=1, mat_bal_iter=20, mat_bal_tol=1e-5, eps=1e-5):
     if u_v is None:
         u = tf.ones([embed_dim, 1], dtype=tf.float64) / embed_dim
         v = tf.ones([embed_dim, 1], dtype=tf.float64) / embed_dim
     
     n_nodes = int(obj_distances.shape[0])
 
-    Node_Pairs = tf.placeholder(dtype=tf.int32, shape=[n_nodes, 2], name='Node_Pairs')
-    Obj_Distances = tf.placeholder(dtype=tf.float64, shape=[n_nodes], name='Obj_Distances')
+    # Node_Pairs = tf.placeholder(dtype=tf.int32, shape=[n_nodes, 2], name='Node_Pairs')
+    Node_Pairs = tf.placeholder(dtype=tf.int32, shape=[batch_size, 2], name='Node_Pairs')
+    # Obj_Distances = tf.placeholder(dtype=tf.float64, shape=[n_nodes], name='Obj_Distances')
+    Obj_Distances = tf.placeholder(dtype=tf.float64, shape=[batch_size], name='Obj_Distances')
     Lambd = tf.placeholder(dtype=tf.float64, shape=(), name='Lambd')
     Learning_rate = tf.placeholder(dtype=tf.float64, shape=(), name='Learning_rate')
 
@@ -147,6 +149,7 @@ def train(node_pairs, obj_distances, embedding_type='Euc', n_epochs=500, learnin
     # Loss = tf.reduce_mean(tf.square(Embed_Distances - Obj_Distances))
     Jac = tf.gradients(ys=Embed_Distances, xs=Embeddings)
     optimizer = tf.train.AdamOptimizer(Learning_rate).minimize(Loss)
+
     init_op = tf.global_variables_initializer()
     with tf.Session() as sess:
         sess.run(init_op)
@@ -154,31 +157,59 @@ def train(node_pairs, obj_distances, embedding_type='Euc', n_epochs=500, learnin
         loss_history = []
         time_history = []
 
+        num_batches = n_nodes // batch_size
+
+        indexes = np.arange(n_nodes)
+
         # best_loss = 1000
         # early_stopping_counter = 0
         start_time = time()
         for epoch in range(n_epochs):
-           # Running the Optimizer
-            _, embeddings, embed_distances, loss, jac = sess.run([optimizer, Embeddings, Embed_Distances, Loss, Jac], feed_dict={Node_Pairs: node_pairs, Obj_Distances: obj_distances, Lambd: lambd, Learning_rate: learning_rate})
-            if np.isnan(loss):
-                raise RuntimeError("Loss is NaN.")
-            # Storing loss to the history
-            loss_history.append(loss)
-            # Storing consumed time
-            time_history.append(time() - start_time)
-            # Displaying result on current Epoch
-            if epoch % 10 == 0:
-                logging.info("Epoch: {}/{}, loss: {}".format(epoch+1, n_epochs, loss))
-            # Early stopping check
-            if epoch > 20 and np.mean(loss_history[-15:-5]) - loss_history[-1] < 1e-4:
-                logging.info("Early Stopped: 10 consecutive epochs with loss improvement {}".format(loss_history[-2]-loss_history[-1]))
-                break
-            # if loss < best_loss:
-            #     best_loss = loss
-            #     early_stopping_counter = 0
-            # else:
-            #     early_stopping_counter += 1
-            # if early_stopping_counter >= patience:
+            np.random.shuffle(indexes)
+
+            for i in range(num_batches):
+                node_pairs_batch = node_pairs[indexes[i*batch_size:(i+1)*batch_size]]
+                obj_distances_batch = obj_distances[indexes[i*batch_size:(i+1)*batch_size]]
+                # Running the Optimizer
+                _, embeddings, embed_distances, loss, jac = sess.run([optimizer, Embeddings, Embed_Distances, Loss, Jac], feed_dict={Node_Pairs: node_pairs_batch, Obj_Distances: obj_distances_batch, Lambd: lambd, Learning_rate: learning_rate})
+                if np.isnan(loss):
+                    raise RuntimeError("Loss is NaN.")
+                # Storing loss to the history
+                loss_history.append(loss)
+                # Storing consumed time
+                time_history.append(time() - start_time)
+                # Displaying result on current Epoch
+                # if epoch % 5 == 0:
+                #     logging.info("Epoch: {}/{}, loss: {}".format(epoch+1, n_epochs, loss))
+                # Early stopping check
+                if epoch > 20 and np.mean(loss_history[-15:-5]) - loss_history[-1] < 1e-4:
+                    logging.info("Early Stopped: 10 consecutive epochs with loss improvement {}".format(loss_history[-2]-loss_history[-1]))
+                    break
+                # if loss < best_loss:
+                #     best_loss = loss
+                #     early_stopping_counter = 0
+                # else:
+                #     early_stopping_counter += 1
+                # if early_stopping_counter >= patience:
+                #     break
+
+            # node_pairs_batch = node_pairs[indexes[(i+1)*batch_size:]]
+            # obj_distances_batch = obj_distances[indexes[(i+1)*batch_size:]]
+            # # Running the Optimizer
+            # _, embeddings, embed_distances, loss, jac = sess.run([optimizer, Embeddings, Embed_Distances, Loss, Jac], feed_dict={Node_Pairs: node_pairs_batch, Obj_Distances: obj_distances_batch, Lambd: lambd, Learning_rate: learning_rate})
+            # if np.isnan(loss):
+            #     raise RuntimeError("Loss is NaN.")
+            # # Storing loss to the history
+            # loss_history.append(loss)
+            # # Storing consumed time
+            # time_history.append(time() - start_time)
+            # # Displaying result on current Epoch
+            # if epoch % 5 == 0:
+            logging.info("Epoch: {}/{}, loss: {}".format(epoch+1, n_epochs, loss))
+            # # Early stopping check
+            # if epoch > 20 and np.mean(loss_history[-15:-5]) - loss_history[-1] < 1e-4:
+            #     logging.info("Early Stopped: 10 consecutive epochs with loss improvement {}".format(loss_history[-2]-loss_history[-1]))
             #     break
+
     return embeddings, loss_history, time_history, embed_distances, jac
 

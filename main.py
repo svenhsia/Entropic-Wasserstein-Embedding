@@ -111,7 +111,8 @@ logging.info("Load DTW distance data from local file")
 file_name = 'Sales'
 
 embed_dims = [30]
-n_epochs = 500
+n_epochs = 5
+batch_size = 128
 num_nodes = org_distances.shape[0]
 distance_adjustment = 1e-5
 
@@ -140,7 +141,7 @@ for embed_dim in embed_dims:
         try:
             embeddings, loss_history, time_history, embed_distances, jac = train(
                 node_pairs, obj_distances, embedding_type='KL', embed_dim=embed_dim, 
-                learning_rate=0.01, n_epochs=n_epochs, nodes=num_nodes)
+                learning_rate=0.01, n_epochs=n_epochs, nodes=num_nodes, batch_size=batch_size)
             break
         except RuntimeError:
             logging.warning("Got loss NaN")
@@ -149,8 +150,8 @@ for embed_dim in embed_dims:
         logging.warning("Fail.")
     if normalize_distance:
         embed_distances = (embed_distances - distance_adjustment) * (obj_max - obj_min) + obj_min
-    logging.info("Writing {}_{}_{} to local file".format(file_name, 'KL', embed_dim))
-    np.savez('./results/{}_{}_{}'.format(file_name, 'KL', embed_dim), 
+    logging.info("Writing {}_{}_{}_batch to local file".format(file_name, 'KL', embed_dim))
+    np.savez('./results/{}_{}_{}_batch'.format(file_name, 'KL', embed_dim), 
         embeddings=embeddings, loss=loss_history, time=time_history, 
         embed_distances=embed_distances)
 
@@ -161,7 +162,7 @@ for embed_dim in embed_dims:
         try:
             embeddings, loss_history, time_history, embed_distances, jac = train(
                 node_pairs, obj_distances, embedding_type='Euc', embed_dim=embed_dim, 
-                learning_rate=0.1, n_epochs=n_epochs, nodes=num_nodes)
+                learning_rate=0.1, n_epochs=n_epochs, nodes=num_nodes, batch_size=batch_size)
             break
         except RuntimeError:
             logging.warning("Got loss NaN")
@@ -170,8 +171,8 @@ for embed_dim in embed_dims:
         logging.warning("Fail.")
     if normalize_distance:
         embed_distances = (embed_distances - distance_adjustment) * (obj_max - obj_min) + obj_min
-    logging.info("Writing {}_{}_{} to local file".format(file_name, 'Euclidean', embed_dim))
-    np.savez('./results/{}_{}_{}'.format(file_name, 'Euclidean', embed_dim), 
+    logging.info("Writing {}_{}_{}_batch to local file".format(file_name, 'Euclidean', embed_dim))
+    np.savez('./results/{}_{}_{}_batch'.format(file_name, 'Euclidean', embed_dim), 
         embeddings=embeddings, loss=loss_history, time=time_history, 
         embed_distances=embed_distances)
     
@@ -182,7 +183,7 @@ for embed_dim in embed_dims:
         try:
             embeddings, loss_history, time_history, embed_distances, jac = train(
                 node_pairs, obj_distances, embedding_type='Hyper', embed_dim=embed_dim, 
-                learning_rate=0.0005, n_epochs=n_epochs, nodes=num_nodes)
+                learning_rate=0.0005, n_epochs=n_epochs, nodes=num_nodes, batch_size=batch_size)
             break
         except RuntimeError:
             logging.warning("Got loss NaN")
@@ -191,8 +192,8 @@ for embed_dim in embed_dims:
         logging.warning("Fail.")
     if normalize_distance:
         embed_distances = (embed_distances - distance_adjustment) * (obj_max - obj_min) + obj_min
-    logging.info("Writing {}_{}_{} to local file".format(file_name, 'Hyperbolic', embed_dim))
-    np.savez('./results/{}_{}_{}'.format(file_name, 'Hyperbolic', embed_dim), 
+    logging.info("Writing {}_{}_{}_batch to local file".format(file_name, 'Hyperbolic', embed_dim))
+    np.savez('./results/{}_{}_{}_batch'.format(file_name, 'Hyperbolic', embed_dim), 
         embeddings=embeddings, loss=loss_history, time=time_history, 
         embed_distances=embed_distances)
     
@@ -203,7 +204,7 @@ for embed_dim in embed_dims:
         try:
             embeddings, loss_history, time_history, embed_distances, jac = train(
                 node_pairs, obj_distances, embedding_type='Wass', embed_dim=embed_dim, 
-                learning_rate=0.1, n_epochs=n_epochs, ground_dim=2, nodes=num_nodes)
+                learning_rate=0.1, n_epochs=n_epochs, ground_dim=2, nodes=num_nodes, batch_size=batch_size)
             break
         except RuntimeError:
             logging.warning("Got loss NaN")
@@ -212,8 +213,8 @@ for embed_dim in embed_dims:
         logging.warning("Fail.")
     if normalize_distance:
         embed_distances = (embed_distances - distance_adjustment) * (obj_max - obj_min) + obj_min
-    logging.info("Writing {}_{}_{} to local file".format(file_name, 'WassR2', embed_dim))
-    np.savez('./results/{}_{}_{}'.format(file_name, 'WassR2', embed_dim), 
+    logging.info("Writing {}_{}_{}_batch to local file".format(file_name, 'WassR2', embed_dim))
+    np.savez('./results/{}_{}_{}_batch'.format(file_name, 'WassR2', embed_dim), 
         embeddings=embeddings, loss=loss_history, time=time_history, 
         embed_distances=embed_distances)
     
