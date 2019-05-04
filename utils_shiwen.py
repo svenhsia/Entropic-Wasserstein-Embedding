@@ -10,6 +10,14 @@ import networkx as nx
 # import matplotlib.pyplot as plt
 
 def cdist(X, Y):
+    """
+    Parameters:
+    -----------
+        X, Y: 2D array, [dim, ground_dim]
+    Returns:
+    -----------
+        distances: 2D array, [dim, dim], the cost matrix
+    """
     X2 = tf.reduce_sum(tf.square(X), 1)
     Y2 = tf.reduce_sum(tf.square(Y), 1)
     X2 = tf.reshape(X2, [-1, 1])
@@ -25,13 +33,14 @@ def compute_T(K, u, v, n_iter, tol):
     """
     Parameters:
     -----------
-        D: 2D array, [M, N]
-        r: 1D array, [M, ]
-        c: 1D array, [N, ]
-        lambd: regularization parameter in Sinkhorn divergence
-        p: power of the Wasserstein space
+        K: 2D array, [M, N]
+        u: 1D array, [M, ]
+        v: 1D array, [N, ]
         n_iter: number of iterations for matrix balancing
         tol: tolerance for stopping matrix balancing iterations
+    Returns:
+    ----------
+        T_opt: 2D array, [M, N], the optimal transport plan
     """
     K_tilde = 1. / u * K
     r = tf.zeros([int(u.shape[0]), 1], dtype=tf.float64)
@@ -56,6 +65,21 @@ def compute_T(K, u, v, n_iter, tol):
 
 
 def wasserstein_distance(n1, n2, embeddings, u, v, lambd, p, n_iter, tol):
+    """
+    Parameters:
+    -----------
+        n1, n2: int, the id of nodes
+        embeddings: 3D array, [n_nodes, dim, ground_dim], the embeddings of each node
+        u: 1D array, [M, ]
+        v: 1D array, [N, ]
+        lambd: float, the regularization parameter
+        p: int, the power of ground metric
+        n_iter: int, max number of iterations
+        tol: float, tolerance for stopping matrix balancing iterations
+    Returns:
+    -----------
+        distance: float, Wasserstein distance
+    """
     support_1 = embeddings[n1, :, :]
     support_2 = embeddings[n2, :, :]
     D = cdist(support_1, support_2)
@@ -71,21 +95,41 @@ def wasserstein_distance(n1, n2, embeddings, u, v, lambd, p, n_iter, tol):
 
 
 def wasserstein_distances(pairs, embeddings, u, v, lambd, p, n_iter, tol):
+    """
+    Returns:
+    -----------
+        results: all Wasserstein distances of node pairs
+    """
     results = tf.map_fn(lambda x: wasserstein_distance(
         x[0], x[1], embeddings, u, v, lambd, p, n_iter, tol), pairs, dtype=tf.float64)
     return results
 
 def euclidean_distance(n1, n2, embeddings):
+    """
+    Returns:
+    ------------
+        distance: Euclidean distance between two nodes
+    """
     v1 = embeddings[n1, :]
     v2 = embeddings[n2, :]
     distance = tf.sqrt(tf.reduce_sum(tf.square(v1 - v2)))
     return distance
 
 def euclidean_distances(pairs, embeddings):
+    """
+    Returns:
+    -----------
+        results: all Euclidean distances of node pairs
+    """
     results = tf.map_fn(lambda x: euclidean_distance(x[0], x[1], embeddings), pairs, dtype=tf.float64)
     return results
 
 def hyperbolic_distance(n1, n2, embeddings, eps):
+    """
+    Returns:
+    ------------
+        distance: hyperbolic distance between two nodes
+    """
     v1 = embeddings[n1, :]
     v2 = embeddings[n2, :]
     norm1 = tf.norm(v1)
@@ -97,10 +141,20 @@ def hyperbolic_distance(n1, n2, embeddings, eps):
     return distance
 
 def hyperbolic_distances(pairs, embeddings, eps):
+    """
+    Returns:
+    -----------
+        results: all hyperbolic distances of node pairs
+    """
     results = tf.map_fn(lambda x: hyperbolic_distance(x[0], x[1], embeddings, eps), pairs, dtype=tf.float64)
     return results
 
 def kl_distance(n1, n2, embeddings, eps):
+    """
+    Returns:
+    ------------
+        distance: KL distance between two nodes
+    """
     v1 = embeddings[n1, :]
     v2 = embeddings[n2, :]
     min1 = tf.reduce_min(v1)
@@ -113,11 +167,21 @@ def kl_distance(n1, n2, embeddings, eps):
     return kl
 
 def kl_distances(pairs, embeddings, eps):
+    """
+    Returns:
+    -----------
+        results: all KL distances of node pairs
+    """
     results = tf.map_fn(lambda x: kl_distance(x[0], x[1], embeddings, eps), pairs, dtype=tf.float64)
     return results
 
 
 def train(node_pairs, obj_distances, embedding_type='Euc', n_epochs=500, batch_size=32, learning_rate=0.01, u_v=None, nodes=128, embed_dim=20, ground_dim=2, lambd=1.0, p=1, mat_bal_iter=20, mat_bal_tol=1e-5, eps=1e-5):
+    """
+    Returns:
+    -----------
+        training embeddings, loss history, time history, embedding distances, jacobian matrix
+    """
     if u_v is None:
         u = tf.ones([embed_dim, 1], dtype=tf.float64) / embed_dim
         v = tf.ones([embed_dim, 1], dtype=tf.float64) / embed_dim
@@ -128,27 +192,36 @@ def train(node_pairs, obj_distances, embedding_type='Euc', n_epochs=500, batch_s
 
     Node_Pairs = tf.placeholder(dtype=tf.int32, shape=[None, 2], name='Node_Pairs')
     Obj_Distances = tf.placeholder(dtype=tf.float64, shape=[None], name='Obj_Distances')
+    # Node_Pairs_all = tf.placeholder(dtype=tf.int32, shape=[n_nodes, 2], name='Node_Pairs_all')
+    # Node_Pairs = tf.placeholder(dtype=tf.int32, shape=[batch_size, 2], name='Node_Pairs')
+    # Obj_Distances_all = tf.placeholder(dtype=tf.float64, shape=[n_nodes], name='Obj_Distances_all')
+    # Obj_Distances = tf.placeholder(dtype=tf.float64, shape=[batch_size], name='Obj_Distances')
     Lambd = tf.placeholder(dtype=tf.float64, shape=(), name='Lambd')
     Learning_rate = tf.placeholder(dtype=tf.float64, shape=(), name='Learning_rate')
 
     if embedding_type == 'Wass':
-        Embeddings = tf.Variable(tf.random.uniform(
-        [nodes, embed_dim, ground_dim], dtype=tf.float64), name='Embeddings')
+        Embeddings = tf.Variable(tf.random.uniform([nodes, embed_dim, ground_dim], dtype=tf.float64), name='Embeddings')
         Embed_Distances = wasserstein_distances(Node_Pairs, Embeddings, u, v, Lambd, p, mat_bal_iter, mat_bal_tol)
+        Embed_Distances_all = wasserstein_distances(Node_Pairs_all, Embeddings, u, v, Lambd, p, mat_bal_iter, mat_bal_tol)
     elif embedding_type == 'Hyper':
         Embeddings = tf.Variable(0.002 * tf.random.uniform([nodes, embed_dim], dtype=tf.float64) - 0.001, name='Embeddings')
         Embed_Distances = hyperbolic_distances(Node_Pairs, Embeddings, eps)
+        Embed_Distances_all = hyperbolic_distances(Node_Pairs_all, Embeddings, eps)
     elif embedding_type == 'KL':
         Embeddings = tf.Variable(tf.random.uniform([nodes, embed_dim], dtype=tf.float64), name='Embeddings')
         Embed_Distances = kl_distances(Node_Pairs, Embeddings, eps)
+        Embed_Distances_all = kl_distances(Node_Pairs_all, Embeddings, eps)
     else:
         Embeddings = tf.Variable(tf.random.uniform([nodes, embed_dim], dtype=tf.float64), name='Embeddings')
         Embed_Distances = euclidean_distances(Node_Pairs, Embeddings)
+        Embed_Distances_all = euclidean_distances(Node_Pairs_all, Embeddings)
 
     Loss = tf.reduce_mean(tf.abs(Embed_Distances - Obj_Distances) / Obj_Distances)
+    Loss_all = tf.reduce_mean(tf.abs(Embed_Distances_all - Obj_Distances_all) / Obj_Distances_all)
     # Loss = tf.reduce_mean(tf.square(Embed_Distances - Obj_Distances))
     Jac = tf.gradients(ys=Embed_Distances, xs=Embeddings)
     optimizer = tf.train.AdamOptimizer(Learning_rate).minimize(Loss)
+
     init_op = tf.global_variables_initializer()
     with tf.Session() as sess:
         sess.run(init_op)
@@ -178,8 +251,28 @@ def train(node_pairs, obj_distances, embedding_type='Euc', n_epochs=500, batch_s
                     logging.info("Epoch: {}/{}, batch No.{}/{} loss: {}".format(epoch+1, n_epochs, batch_id+1, n_batches, loss))
             loss = sess.run(Loss, feed_dict={Node_Pairs: node_pairs, Obj_Distances: obj_distances, Lambd: lambd, Learning_rate: learning_rate})
             # Storing loss to the history
+        # num_batches = n_nodes // batch_size
+
+        # indexes = np.arange(n_nodes)
+
+        # start_time = time()
+        # for epoch in range(n_epochs):
+        #     np.random.shuffle(indexes)
+
+        #     for i in range(num_batches):
+        #         node_pairs_batch = node_pairs[indexes[i*batch_size:(i+1)*batch_size]]
+        #         obj_distances_batch = obj_distances[indexes[i*batch_size:(i+1)*batch_size]]
+        #         # Running the Optimizer
+        #         _, embeddings, embed_distances, loss, jac = sess.run([optimizer, Embeddings, Embed_Distances, Loss, Jac], feed_dict={Node_Pairs: node_pairs_batch, Obj_Distances: obj_distances_batch, Lambd: lambd, Learning_rate: learning_rate})
+        #         if np.isnan(loss):
+        #             raise RuntimeError("Loss is NaN.")
+        #         # Storing loss to the history
+        #         # loss_history.append(loss)
+        #         # Storing consumed time
+        #         # time_history.append(time() - start_time)        
+
+        #     loss = sess.run(Loss_all, feed_dict={Node_Pairs_all: node_pairs, Obj_Distances_all: obj_distances, Lambd: lambd, Learning_rate: learning_rate})
             loss_history.append(loss)
-            # Storing consumed time
             time_history.append(time() - start_time)
             # Displaying result on current Epoch
             if epoch % 1 == 0:
@@ -188,12 +281,7 @@ def train(node_pairs, obj_distances, embedding_type='Euc', n_epochs=500, batch_s
             if epoch > 10 and np.mean(loss_history[-6:-1]) - loss_history[-1] < 1e-4:
                 logging.info("Early Stopped: 10 consecutive epochs with loss improvement {}".format(loss_history[-2]-loss_history[-1]))
                 break
-            # if loss < best_loss:
-            #     best_loss = loss
-            #     early_stopping_counter = 0
-            # else:
-            #     early_stopping_counter += 1
-            # if early_stopping_counter >= patience:
-            #     break
+
+
     return embeddings, loss_history, time_history, embed_distances, jac
 
