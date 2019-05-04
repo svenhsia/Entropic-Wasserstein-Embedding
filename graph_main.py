@@ -14,7 +14,7 @@ from utils import *
 # graph_id = sys.argv[1]
 
 embed_dims = [2, 5, 10, 20, 30, 40]
-n_epochs = 500
+n_epochs = 5
 num_nodes = 64
 
 for graph_id in range(1, 11):
