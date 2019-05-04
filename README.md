@@ -11,3 +11,4 @@ This is a course project of « Geometric Methods in Machine Learning » @ ENSAE,
 3. To get results on __Sales Transaction Weekly Dataset__, first download data from https://archive.ics.uci.edu/ml/datasets/Sales_Transactions_Dataset_Weekly and save it to ```data``` folder.
 4. Run ```DTWdistance.py``` and you will see the calculated DTW distances are stored as ```data/Sales_Transactions_Dataset.dist```. This will take around 20 minutes to run.
 5. Run ```sales_main.py``` and you will see the embedding results are stored under ```results``` folder. This will take around one hour to run.
+6. The visualization results are in ```Visualization.ipynb```.

@@ -125,21 +125,43 @@ for embed_dim in embed_dims:
     
     # # Wass R3
     # logging.info("Running Wasserstein R3 embedding, embed dim={}".format(embed_dim))
-    # embeddings, loss_history, time_history, embed_distances, jac = train(
-    #     node_pairs, obj_distances, embedding_type='Wass', embed_dim=embed_dim, 
-    #     learning_rate=0.001, n_epochs=n_epochs, ground_dim=3, nodes=num_nodes, batch_size=batch_size)
-    # np.savez('./results/{}_{}_{}'.format(file_name, 'WassR3', embed_dim), 
+    # try_count = 0
+    # while try_count < max_try:
+    #     try:
+    #         embeddings, loss_history, time_history, embed_distances, jac = train(
+    #             node_pairs, obj_distances, embedding_type='Wass', embed_dim=embed_dim, 
+    #             learning_rate=0.001, n_epochs=n_epochs, ground_dim=3, nodes=num_nodes, batch_size=batch_size)
+    #         break
+    #     except RuntimeError:
+    #         logging.warning("Got loss NaN")
+    #         try_count += 1
+    # else:
+    #     logging.warning("Fail.")
+    # if normalize_distance:
+    #     embed_distances = (embed_distances - distance_adjustment) * (obj_max - obj_min) + obj_min
+    # logging.info("Writing {}_{}_{}_batch to local file".format(file_name, 'WassR3', embed_dim))
+    # np.savez('./results/{}_{}_{}_batch'.format(file_name, 'WassR3', embed_dim), 
     #     embeddings=embeddings, loss=loss_history, time=time_history, 
     #     embed_distances=embed_distances)
-    
+
     # # Wass R4
     # logging.info("Running Wasserstein R4 embedding, embed dim={}".format(embed_dim))
-    # embeddings, loss_history, time_history, embed_distances, jac = train(
-    #     node_pairs, obj_distances, embedding_type='Wass', embed_dim=embed_dim, 
-    #     learning_rate=0.001, n_epochs=n_epochs, ground_dim=4, nodes=num_nodes, batch_size=batch_size)
-    # np.savez('./results/{}_{}_{}'.format(file_name, 'WassR4', embed_dim), 
+    # try_count = 0
+    # while try_count < max_try:
+    #     try:
+    #         embeddings, loss_history, time_history, embed_distances, jac = train(
+    #             node_pairs, obj_distances, embedding_type='Wass', embed_dim=embed_dim, 
+    #             learning_rate=0.001, n_epochs=n_epochs, ground_dim=4, nodes=num_nodes, batch_size=batch_size)
+    #         break
+    #     except RuntimeError:
+    #         logging.warning("Got loss NaN")
+    #         try_count += 1
+    # else:
+    #     logging.warning("Fail.")
+    # if normalize_distance:
+    #     embed_distances = (embed_distances - distance_adjustment) * (obj_max - obj_min) + obj_min
+    # logging.info("Writing {}_{}_{}_batch to local file".format(file_name, 'WassR4', embed_dim))
+    # np.savez('./results/{}_{}_{}_batch'.format(file_name, 'WassR4', embed_dim), 
     #     embeddings=embeddings, loss=loss_history, time=time_history, 
     #     embed_distances=embed_distances)
-
-
 
