@@ -188,32 +188,25 @@ def train(node_pairs, obj_distances, embedding_type='Euc', n_epochs=500, batch_s
     
     n_nodes = int(obj_distances.shape[0])
 
-    Node_Pairs_all = tf.placeholder(dtype=tf.int32, shape=[n_nodes, 2], name='Node_Pairs_all')
-    Node_Pairs = tf.placeholder(dtype=tf.int32, shape=[batch_size, 2], name='Node_Pairs')
-    Obj_Distances_all = tf.placeholder(dtype=tf.float64, shape=[n_nodes], name='Obj_Distances_all')
-    Obj_Distances = tf.placeholder(dtype=tf.float64, shape=[batch_size], name='Obj_Distances')
+    Node_Pairs = tf.placeholder(dtype=tf.int32, shape=[None, 2], name='Node_Pairs')
+    Obj_Distances = tf.placeholder(dtype=tf.float64, shape=[None], name='Obj_Distances')
     Lambd = tf.placeholder(dtype=tf.float64, shape=(), name='Lambd')
     Learning_rate = tf.placeholder(dtype=tf.float64, shape=(), name='Learning_rate')
 
     if embedding_type == 'Wass':
         Embeddings = tf.Variable(tf.random.uniform([nodes, embed_dim, ground_dim], dtype=tf.float64), name='Embeddings')
         Embed_Distances = wasserstein_distances(Node_Pairs, Embeddings, u, v, Lambd, p, mat_bal_iter, mat_bal_tol)
-        Embed_Distances_all = wasserstein_distances(Node_Pairs_all, Embeddings, u, v, Lambd, p, mat_bal_iter, mat_bal_tol)
     elif embedding_type == 'Hyper':
         Embeddings = tf.Variable(0.002 * tf.random.uniform([nodes, embed_dim], dtype=tf.float64) - 0.001, name='Embeddings')
         Embed_Distances = hyperbolic_distances(Node_Pairs, Embeddings, eps)
-        Embed_Distances_all = hyperbolic_distances(Node_Pairs_all, Embeddings, eps)
     elif embedding_type == 'KL':
         Embeddings = tf.Variable(tf.random.uniform([nodes, embed_dim], dtype=tf.float64), name='Embeddings')
         Embed_Distances = kl_distances(Node_Pairs, Embeddings, eps)
-        Embed_Distances_all = kl_distances(Node_Pairs_all, Embeddings, eps)
     else:
         Embeddings = tf.Variable(tf.random.uniform([nodes, embed_dim], dtype=tf.float64), name='Embeddings')
         Embed_Distances = euclidean_distances(Node_Pairs, Embeddings)
-        Embed_Distances_all = euclidean_distances(Node_Pairs_all, Embeddings)
 
     Loss = tf.reduce_mean(tf.abs(Embed_Distances - Obj_Distances) / Obj_Distances)
-    Loss_all = tf.reduce_mean(tf.abs(Embed_Distances_all - Obj_Distances_all) / Obj_Distances_all)
     # Loss = tf.reduce_mean(tf.square(Embed_Distances - Obj_Distances))
     Jac = tf.gradients(ys=Embed_Distances, xs=Embeddings)
     optimizer = tf.train.AdamOptimizer(Learning_rate).minimize(Loss)
@@ -240,12 +233,16 @@ def train(node_pairs, obj_distances, embedding_type='Euc', n_epochs=500, batch_s
                 _, embeddings, embed_distances, loss, jac = sess.run([optimizer, Embeddings, Embed_Distances, Loss, Jac], feed_dict={Node_Pairs: node_pairs_batch, Obj_Distances: obj_distances_batch, Lambd: lambd, Learning_rate: learning_rate})
                 if np.isnan(loss):
                     raise RuntimeError("Loss is NaN.")
-                # Storing loss to the history
-                # loss_history.append(loss)
-                # Storing consumed time
-                # time_history.append(time() - start_time)        
 
-            loss = sess.run(Loss_all, feed_dict={Node_Pairs_all: node_pairs, Obj_Distances_all: obj_distances, Lambd: lambd, Learning_rate: learning_rate})
+            if (i+1)*batch_size < n_nodes:
+                node_pairs_batch = node_pairs[indexes[(i+1)*batch_size:]]
+                obj_distances_batch = obj_distances[indexes[(i+1)*batch_size:]]
+                # Running the Optimizer
+                _, embeddings, embed_distances, loss, jac = sess.run([optimizer, Embeddings, Embed_Distances, Loss, Jac], feed_dict={Node_Pairs: node_pairs_batch, Obj_Distances: obj_distances_batch, Lambd: lambd, Learning_rate: learning_rate})
+                if np.isnan(loss):
+                    raise RuntimeError("Loss is NaN.")        
+
+            loss, embed_distances = sess.run([Loss, Embed_Distances], feed_dict={Node_Pairs: node_pairs, Obj_Distances: obj_distances, Lambd: lambd, Learning_rate: learning_rate})
             loss_history.append(loss)
             time_history.append(time() - start_time)
             # # Displaying result on current Epoch

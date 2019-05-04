@@ -15,7 +15,7 @@ logging.info("Load DTW distance data from local file")
 file_name = 'Sales'
 
 embed_dims = [30]
-n_epochs = 20
+n_epochs = 30
 batch_size = 4096
 num_nodes = org_distances.shape[0]
 distance_adjustment = 1e-5
@@ -45,7 +45,7 @@ for embed_dim in embed_dims:
         try:
             embeddings, loss_history, time_history, embed_distances, jac = train(
                 node_pairs, obj_distances, embedding_type='Wass', embed_dim=embed_dim, 
-                learning_rate=0.01, n_epochs=n_epochs, ground_dim=2, nodes=num_nodes, batch_size=batch_size)
+                learning_rate=0.001, n_epochs=n_epochs, ground_dim=2, nodes=num_nodes, batch_size=batch_size)
             break
         except RuntimeError:
             logging.warning("Got loss NaN")
@@ -87,7 +87,7 @@ for embed_dim in embed_dims:
         try:
             embeddings, loss_history, time_history, embed_distances, jac = train(
                 node_pairs, obj_distances, embedding_type='Euc', embed_dim=embed_dim, 
-                learning_rate=0.01, n_epochs=n_epochs, nodes=num_nodes, batch_size=batch_size)
+                learning_rate=0.001, n_epochs=n_epochs, nodes=num_nodes, batch_size=batch_size)
             break
         except RuntimeError:
             logging.warning("Got loss NaN")
@@ -108,7 +108,7 @@ for embed_dim in embed_dims:
         try:
             embeddings, loss_history, time_history, embed_distances, jac = train(
                 node_pairs, obj_distances, embedding_type='Hyper', embed_dim=embed_dim, 
-                learning_rate=0.0001, n_epochs=n_epochs, nodes=num_nodes, batch_size=batch_size)
+                learning_rate=0.00005, n_epochs=n_epochs, nodes=num_nodes, batch_size=batch_size)
             break
         except RuntimeError:
             logging.warning("Got loss NaN")
@@ -127,7 +127,7 @@ for embed_dim in embed_dims:
     # logging.info("Running Wasserstein R3 embedding, embed dim={}".format(embed_dim))
     # embeddings, loss_history, time_history, embed_distances, jac = train(
     #     node_pairs, obj_distances, embedding_type='Wass', embed_dim=embed_dim, 
-    #     learning_rate=0.1, n_epochs=n_epochs, ground_dim=3, nodes=num_nodes)
+    #     learning_rate=0.001, n_epochs=n_epochs, ground_dim=3, nodes=num_nodes, batch_size=batch_size)
     # np.savez('./results/{}_{}_{}'.format(file_name, 'WassR3', embed_dim), 
     #     embeddings=embeddings, loss=loss_history, time=time_history, 
     #     embed_distances=embed_distances)
@@ -136,7 +136,7 @@ for embed_dim in embed_dims:
     # logging.info("Running Wasserstein R4 embedding, embed dim={}".format(embed_dim))
     # embeddings, loss_history, time_history, embed_distances, jac = train(
     #     node_pairs, obj_distances, embedding_type='Wass', embed_dim=embed_dim, 
-    #     learning_rate=0.1, n_epochs=n_epochs, ground_dim=4, nodes=num_nodes)
+    #     learning_rate=0.001, n_epochs=n_epochs, ground_dim=4, nodes=num_nodes, batch_size=batch_size)
     # np.savez('./results/{}_{}_{}'.format(file_name, 'WassR4', embed_dim), 
     #     embeddings=embeddings, loss=loss_history, time=time_history, 
     #     embed_distances=embed_distances)
