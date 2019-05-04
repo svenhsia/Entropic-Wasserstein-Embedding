@@ -134,67 +134,67 @@ else:
 for embed_dim in embed_dims:
 
     # KL
-    logging.info("Running KL embedding, embed dim={}".format(embed_dim))
-    try_count = 0
-    while try_count < max_try:
-        try:
-            embeddings, loss_history, time_history, embed_distances, jac = train(
-                node_pairs, obj_distances, embedding_type='KL', embed_dim=embed_dim, 
-                learning_rate=0.01, n_epochs=n_epochs, nodes=num_nodes)
-            break
-        except RuntimeError:
-            logging.warning("Got loss NaN")
-            try_count += 1
-    else:
-        logging.warning("Fail.")
-    if normalize_distance:
-        embed_distances = (embed_distances - distance_adjustment) * (obj_max - obj_min) + obj_min
-    logging.info("Writing {}_{}_{} to local file".format(file_name, 'KL', embed_dim))
-    np.savez('./results/{}_{}_{}'.format(file_name, 'KL', embed_dim), 
-        embeddings=embeddings, loss=loss_history, time=time_history, 
-        embed_distances=embed_distances)
+    # logging.info("Running KL embedding, embed dim={}".format(embed_dim))
+    # try_count = 0
+    # while try_count < max_try:
+    #     try:
+    #         embeddings, loss_history, time_history, embed_distances, jac = train(
+    #             node_pairs, obj_distances, embedding_type='KL', batch_size=1024, embed_dim=embed_dim, 
+    #             learning_rate=0.01, n_epochs=n_epochs, nodes=num_nodes)
+    #         break
+    #     except RuntimeError:
+    #         logging.warning("Got loss NaN")
+    #         try_count += 1
+    # else:
+    #     logging.warning("Fail.")
+    # if normalize_distance:
+    #     embed_distances = (embed_distances - distance_adjustment) * (obj_max - obj_min) + obj_min
+    # logging.info("Writing {}_{}_{} to local file".format(file_name, 'KL', embed_dim))
+    # np.savez('./results/{}_{}_{}'.format(file_name, 'KL', embed_dim), 
+    #     embeddings=embeddings, loss=loss_history, time=time_history, 
+    #     embed_distances=embed_distances)
 
-    # Euclidean
-    logging.info("Running Euclidean embedding, embed dim={}".format(embed_dim))
-    try_count = 0
-    while try_count < max_try:
-        try:
-            embeddings, loss_history, time_history, embed_distances, jac = train(
-                node_pairs, obj_distances, embedding_type='Euc', embed_dim=embed_dim, 
-                learning_rate=0.1, n_epochs=n_epochs, nodes=num_nodes)
-            break
-        except RuntimeError:
-            logging.warning("Got loss NaN")
-            try_count += 1
-    else:
-        logging.warning("Fail.")
-    if normalize_distance:
-        embed_distances = (embed_distances - distance_adjustment) * (obj_max - obj_min) + obj_min
-    logging.info("Writing {}_{}_{} to local file".format(file_name, 'Euclidean', embed_dim))
-    np.savez('./results/{}_{}_{}'.format(file_name, 'Euclidean', embed_dim), 
-        embeddings=embeddings, loss=loss_history, time=time_history, 
-        embed_distances=embed_distances)
+    # # Euclidean
+    # logging.info("Running Euclidean embedding, embed dim={}".format(embed_dim))
+    # try_count = 0
+    # while try_count < max_try:
+    #     try:
+    #         embeddings, loss_history, time_history, embed_distances, jac = train(
+    #             node_pairs, obj_distances, embedding_type='Euc', embed_dim=embed_dim, 
+    #             learning_rate=0.1, n_epochs=n_epochs, nodes=num_nodes)
+    #         break
+    #     except RuntimeError:
+    #         logging.warning("Got loss NaN")
+    #         try_count += 1
+    # else:
+    #     logging.warning("Fail.")
+    # if normalize_distance:
+    #     embed_distances = (embed_distances - distance_adjustment) * (obj_max - obj_min) + obj_min
+    # logging.info("Writing {}_{}_{} to local file".format(file_name, 'Euclidean', embed_dim))
+    # np.savez('./results/{}_{}_{}'.format(file_name, 'Euclidean', embed_dim), 
+    #     embeddings=embeddings, loss=loss_history, time=time_history, 
+    #     embed_distances=embed_distances)
     
-    # Hyperbolic
-    logging.info("Running Hyperbolic embedding, embed dim={}".format(embed_dim))
-    try_count = 0
-    while try_count < max_try:
-        try:
-            embeddings, loss_history, time_history, embed_distances, jac = train(
-                node_pairs, obj_distances, embedding_type='Hyper', embed_dim=embed_dim, 
-                learning_rate=0.0005, n_epochs=n_epochs, nodes=num_nodes)
-            break
-        except RuntimeError:
-            logging.warning("Got loss NaN")
-            try_count += 1
-    else:
-        logging.warning("Fail.")
-    if normalize_distance:
-        embed_distances = (embed_distances - distance_adjustment) * (obj_max - obj_min) + obj_min
-    logging.info("Writing {}_{}_{} to local file".format(file_name, 'Hyperbolic', embed_dim))
-    np.savez('./results/{}_{}_{}'.format(file_name, 'Hyperbolic', embed_dim), 
-        embeddings=embeddings, loss=loss_history, time=time_history, 
-        embed_distances=embed_distances)
+    # # Hyperbolic
+    # logging.info("Running Hyperbolic embedding, embed dim={}".format(embed_dim))
+    # try_count = 0
+    # while try_count < max_try:
+    #     try:
+    #         embeddings, loss_history, time_history, embed_distances, jac = train(
+    #             node_pairs, obj_distances, embedding_type='Hyper', embed_dim=embed_dim, 
+    #             learning_rate=0.0005, n_epochs=n_epochs, nodes=num_nodes)
+    #         break
+    #     except RuntimeError:
+    #         logging.warning("Got loss NaN")
+    #         try_count += 1
+    # else:
+    #     logging.warning("Fail.")
+    # if normalize_distance:
+    #     embed_distances = (embed_distances - distance_adjustment) * (obj_max - obj_min) + obj_min
+    # logging.info("Writing {}_{}_{} to local file".format(file_name, 'Hyperbolic', embed_dim))
+    # np.savez('./results/{}_{}_{}'.format(file_name, 'Hyperbolic', embed_dim), 
+    #     embeddings=embeddings, loss=loss_history, time=time_history, 
+    #     embed_distances=embed_distances)
     
     # Wass R2
     logging.info("Running Wasserstein R2 embedding, embed dim={}".format(embed_dim))
@@ -202,8 +202,8 @@ for embed_dim in embed_dims:
     while try_count < max_try:
         try:
             embeddings, loss_history, time_history, embed_distances, jac = train(
-                node_pairs, obj_distances, embedding_type='Wass', embed_dim=embed_dim, 
-                learning_rate=0.1, n_epochs=n_epochs, ground_dim=2, nodes=num_nodes)
+                node_pairs, obj_distances, embedding_type='Wass', embed_dim=embed_dim, batch_size=1024,
+                learning_rate=0.001, n_epochs=n_epochs, ground_dim=2, nodes=num_nodes)
             break
         except RuntimeError:
             logging.warning("Got loss NaN")

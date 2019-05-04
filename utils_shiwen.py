@@ -117,15 +117,17 @@ def kl_distances(pairs, embeddings, eps):
     return results
 
 
-def train(node_pairs, obj_distances, embedding_type='Euc', n_epochs=500, learning_rate=0.01, u_v=None, nodes=128, embed_dim=20, ground_dim=2, lambd=1.0, p=1, mat_bal_iter=20, mat_bal_tol=1e-5, eps=1e-5):
+def train(node_pairs, obj_distances, embedding_type='Euc', n_epochs=500, batch_size=32, learning_rate=0.01, u_v=None, nodes=128, embed_dim=20, ground_dim=2, lambd=1.0, p=1, mat_bal_iter=20, mat_bal_tol=1e-5, eps=1e-5):
     if u_v is None:
         u = tf.ones([embed_dim, 1], dtype=tf.float64) / embed_dim
         v = tf.ones([embed_dim, 1], dtype=tf.float64) / embed_dim
     
-    n_nodes = int(obj_distances.shape[0])
+    n_pairs = int(obj_distances.shape[0])
+    node_pairs_idx = np.arange(n_pairs)
+    n_batches = n_pairs // batch_size
 
-    Node_Pairs = tf.placeholder(dtype=tf.int32, shape=[n_nodes, 2], name='Node_Pairs')
-    Obj_Distances = tf.placeholder(dtype=tf.float64, shape=[n_nodes], name='Obj_Distances')
+    Node_Pairs = tf.placeholder(dtype=tf.int32, shape=[None, 2], name='Node_Pairs')
+    Obj_Distances = tf.placeholder(dtype=tf.float64, shape=[None], name='Obj_Distances')
     Lambd = tf.placeholder(dtype=tf.float64, shape=(), name='Lambd')
     Learning_rate = tf.placeholder(dtype=tf.float64, shape=(), name='Learning_rate')
 
@@ -156,21 +158,34 @@ def train(node_pairs, obj_distances, embedding_type='Euc', n_epochs=500, learnin
 
         # best_loss = 1000
         # early_stopping_counter = 0
+        node_pairs_idx = np.arange(len(node_pairs))
         start_time = time()
         for epoch in range(n_epochs):
            # Running the Optimizer
-            _, embeddings, embed_distances, loss, jac = sess.run([optimizer, Embeddings, Embed_Distances, Loss, Jac], feed_dict={Node_Pairs: node_pairs, Obj_Distances: obj_distances, Lambd: lambd, Learning_rate: learning_rate})
-            if np.isnan(loss):
-                raise RuntimeError("Loss is NaN.")
+            np.random.shuffle(node_pairs_idx)
+            for batch_id in range(n_batches):
+                batch_node_pairs_idx = node_pairs_idx[batch_id*batch_size:(batch_id+1)*batch_size]
+                batch_node_pairs = node_pairs[batch_node_pairs_idx, :]
+                batch_obj_distances = obj_distances[batch_node_pairs_idx]
+                _, embeddings, embed_distances, loss, jac = sess.run([optimizer, Embeddings, Embed_Distances, Loss, Jac], 
+                                                                     feed_dict={Node_Pairs: batch_node_pairs, 
+                                                                                Obj_Distances: batch_obj_distances, 
+                                                                                Lambd: lambd, 
+                                                                                Learning_rate: learning_rate})
+                if np.isnan(loss):
+                    raise RuntimeError("Loss is NaN.")
+                if batch_id % (n_batches // 10) == 0:
+                    logging.info("Epoch: {}/{}, batch No.{}/{} loss: {}".format(epoch+1, n_epochs, batch_id+1, n_batches, loss))
+            loss = sess.run(Loss, feed_dict={Node_Pairs: node_pairs, Obj_Distances: obj_distances, Lambd: lambd, Learning_rate: learning_rate})
             # Storing loss to the history
             loss_history.append(loss)
             # Storing consumed time
             time_history.append(time() - start_time)
             # Displaying result on current Epoch
-            if epoch % 10 == 0:
+            if epoch % 1 == 0:
                 logging.info("Epoch: {}/{}, loss: {}".format(epoch+1, n_epochs, loss))
             # Early stopping check
-            if epoch > 20 and np.mean(loss_history[-15:-5]) - loss_history[-1] < 1e-4:
+            if epoch > 10 and np.mean(loss_history[-6:-1]) - loss_history[-1] < 1e-4:
                 logging.info("Early Stopped: 10 consecutive epochs with loss improvement {}".format(loss_history[-2]-loss_history[-1]))
                 break
             # if loss < best_loss:
