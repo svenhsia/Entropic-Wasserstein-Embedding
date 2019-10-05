@@ -14,4 +14,4 @@ This is a course project of « Geometric Methods in Machine Learning » @ ENSAE,
 6. The visualization results are in ```Visualization.ipynb```.
 
 # A small comment
-We *define* a KL-distance in this project, and experimental results demonstrate that in some aspect, this *distance* shows some advantages compared with the others distances. However, please be informed that the Kullback-Leibler divergence should not be treated as a **distance** (violation of symmetry and triangle inequality).
+We *define* a KL-distance in this project, and experimental results demonstrate that in some aspects, this *distance* shows some advantages compared with the others. However, please be informed that the Kullback-Leibler divergence should not be treated as a **distance** (violation of symmetry and triangle inequality).
