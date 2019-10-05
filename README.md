@@ -12,3 +12,6 @@ This is a course project of « Geometric Methods in Machine Learning » @ ENSAE,
 4. Run ```DTWdistance.py``` and you will see the calculated DTW distances are stored as ```data/Sales_Transactions_Dataset.dist```. This will take around 20 minutes to run.
 5. Run ```sales_main.py``` and you will see the embedding results are stored under ```results``` folder. This will take around one hour to run.
 6. The visualization results are in ```Visualization.ipynb```.
+
+# A small comment
+We *define* a KL-distance in this project, and experimental results demonstrate that in some aspect, this *distance* shows some advantages compared with the others distances. However, please be informed that the Kullback-Leibler divergence should not be treated as a **distance** (violation of symmetry and triangle inequality).
